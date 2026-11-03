@@ -1,0 +1,18 @@
+input file : evidence/inputs/09_lookalike.txt
+redact.py  : original (original/redact.py)
+changed    : yes
+[REDACTED] markers added: 1
+lines still containing 'rly_' (any case): 0
+
+=== SIDE BY SIDE ===
+line 1  [CHANGED]
+  IN : Docs example: Authorization: Bearer token-placeholder-for-docs
+  OUT: Docs example: Authorization: [REDACTED]
+
+=== RAW INPUT ===
+Docs example: Authorization: Bearer token-placeholder-for-docs
+=== END RAW INPUT ===
+
+=== RAW OUTPUT ===
+Docs example: Authorization: [REDACTED]
+=== END RAW OUTPUT ===

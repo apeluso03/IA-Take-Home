@@ -1,0 +1,18 @@
+input file : evidence/inputs/04_json.txt
+redact.py  : original (original/redact.py)
+changed    : yes
+[REDACTED] markers added: 1
+lines still containing 'rly_' (any case): 0
+
+=== SIDE BY SIDE ===
+line 1  [CHANGED]
+  IN : {"service":"billing-sync","new_key":"rly_FAKEz9y8x7w6v5u4t3s2r1q0"}
+  OUT: {"service":"billing-sync","new_key":"[REDACTED]"}
+
+=== RAW INPUT ===
+{"service":"billing-sync","new_key":"rly_FAKEz9y8x7w6v5u4t3s2r1q0"}
+=== END RAW INPUT ===
+
+=== RAW OUTPUT ===
+{"service":"billing-sync","new_key":"[REDACTED]"}
+=== END RAW OUTPUT ===

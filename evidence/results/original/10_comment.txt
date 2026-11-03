@@ -1,0 +1,39 @@
+input file : evidence/inputs/10_comment.txt
+redact.py  : original (original/redact.py)
+changed    : yes
+[REDACTED] markers added: 1
+lines still containing 'rly_' (any case): 1
+  line 5: {"service":"billing-sync","new_key":"rly_FAKE-z9y8-x7w6-v5u4-t3s2-r1q0","status":"ok"}
+
+=== SIDE BY SIDE ===
+line 1  [UNCHANGED]
+  IN : Rotated key for billing-sync.
+  OUT: Rotated key for billing-sync.
+line 2  [UNCHANGED]
+  IN : Request:
+  OUT: Request:
+line 3  [CHANGED]
+  IN : curl -s -H "Authorization: Bearer rly_OLDKk1l2m3n4o5p6q7r8s9t0" https://relay.example.internal/v1/keys/rotate -d '{"service":"billing-sync"}'
+  OUT: curl -s -H "Authorization: Bearer [REDACTED]" https://relay.example.internal/v1/keys/rotate -d '{"service":"billing-sync"}'
+line 4  [UNCHANGED]
+  IN : Response:
+  OUT: Response:
+line 5  [UNCHANGED]
+  IN : {"service":"billing-sync","new_key":"rly_FAKE-z9y8-x7w6-v5u4-t3s2-r1q0","status":"ok"}
+  OUT: {"service":"billing-sync","new_key":"rly_FAKE-z9y8-x7w6-v5u4-t3s2-r1q0","status":"ok"}
+
+=== RAW INPUT ===
+Rotated key for billing-sync.
+Request:
+curl -s -H "Authorization: Bearer rly_OLDKk1l2m3n4o5p6q7r8s9t0" https://relay.example.internal/v1/keys/rotate -d '{"service":"billing-sync"}'
+Response:
+{"service":"billing-sync","new_key":"rly_FAKE-z9y8-x7w6-v5u4-t3s2-r1q0","status":"ok"}
+=== END RAW INPUT ===
+
+=== RAW OUTPUT ===
+Rotated key for billing-sync.
+Request:
+curl -s -H "Authorization: Bearer [REDACTED]" https://relay.example.internal/v1/keys/rotate -d '{"service":"billing-sync"}'
+Response:
+{"service":"billing-sync","new_key":"rly_FAKE-z9y8-x7w6-v5u4-t3s2-r1q0","status":"ok"}
+=== END RAW OUTPUT ===

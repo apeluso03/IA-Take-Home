@@ -1,0 +1,29 @@
+input file : evidence/inputs/08_text.txt
+redact.py  : original (original/redact.py)
+changed    : NO - output identical to input
+[REDACTED] markers added: 0
+lines still containing 'rly_' (any case): 1
+  line 3: The rly_ prefix marks a Relay key.
+
+=== SIDE BY SIDE ===
+line 1  [UNCHANGED]
+  IN : Rotated the key for billing-sync at 14:02. See ticket SUP-5521.
+  OUT: Rotated the key for billing-sync at 14:02. See ticket SUP-5521.
+line 2  [UNCHANGED]
+  IN : Endpoint: https://relay.example.internal/v1/keys/rotate
+  OUT: Endpoint: https://relay.example.internal/v1/keys/rotate
+line 3  [UNCHANGED]
+  IN : The rly_ prefix marks a Relay key.
+  OUT: The rly_ prefix marks a Relay key.
+
+=== RAW INPUT ===
+Rotated the key for billing-sync at 14:02. See ticket SUP-5521.
+Endpoint: https://relay.example.internal/v1/keys/rotate
+The rly_ prefix marks a Relay key.
+=== END RAW INPUT ===
+
+=== RAW OUTPUT ===
+Rotated the key for billing-sync at 14:02. See ticket SUP-5521.
+Endpoint: https://relay.example.internal/v1/keys/rotate
+The rly_ prefix marks a Relay key.
+=== END RAW OUTPUT ===
