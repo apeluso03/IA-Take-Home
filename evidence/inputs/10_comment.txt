@@ -1,0 +1,5 @@
+Rotated key for billing-sync.
+Request:
+curl -s -H "Authorization: Bearer rly_OLDKk1l2m3n4o5p6q7r8s9t0" https://relay.example.internal/v1/keys/rotate -d '{"service":"billing-sync"}'
+Response:
+{"service":"billing-sync","new_key":"rly_FAKE-z9y8-x7w6-v5u4-t3s2-r1q0","status":"ok"}

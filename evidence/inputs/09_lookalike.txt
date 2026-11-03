@@ -1,0 +1,1 @@
+Docs example: Authorization: Bearer token-placeholder-for-docs

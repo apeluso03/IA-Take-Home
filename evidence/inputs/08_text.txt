@@ -1,0 +1,3 @@
+Rotated the key for billing-sync at 14:02. See ticket SUP-5521.
+Endpoint: https://relay.example.internal/v1/keys/rotate
+The rly_ prefix marks a Relay key.
