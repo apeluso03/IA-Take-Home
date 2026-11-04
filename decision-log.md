@@ -28,3 +28,13 @@
     - Write out memo and any other writing needed to finish up
     - Record video
     - Try to keep work to around an hour per assignment instructions
+
+## 11/4/2026
+- 400PM: Wrote spec task to generate new skill
+    - Decided to fold helper task into the same task to ensure the two connected properly
+        - Decided to create a helper to rotate the key because having it in code was more reliable than trusting an agent to do it properly
+- 427PM: Gap found - skill did not specify how to pass summary to redact.py, and having it be passed on command line would end up being a similar vulnerability to what could have happened in the first place
+    - Decided to pass as a file that never touched the command line
+- 439PM: Missing ticket should not block rotation because what matters is that key gets rotated in case of a leak
+    - If ticket is required, comment could find its way onto a public support ticket via user rushing to find a ticket that may be incorrect
+    - Without a ticket, rotation still can occur, but agent posts nothing and gives the redacted summary back to user to file themselves
