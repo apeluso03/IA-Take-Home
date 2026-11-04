@@ -20,3 +20,4 @@
 - 924PM: Wrote out steps for Task 2 in SPEC.md
     - Decided to have new redact exit with error code and prevent prints to stdout if it detects a key or likely key value still remains
         - Requires a second check
+- 950: Redact.py fix commited with checks for line wrapping, case sensitivity, passes all tests
