@@ -15,7 +15,7 @@ redact.py: `src/redact.py`
 | 09_lookalike.txt | yes | 1 | 0 |
 | 10_comment.txt | yes | 2 | 0 |
 | 11_multiple.txt | yes | 2 | 0 |
-| 12_wrapped2.txt | **no** | 0 | 0 |
+| 12_wrapped2.txt | yes | 1 | 0 |
 
 `rly_` count is a pointer for manual review only; it can be a legitimate
 mention of the prefix. Read each result file before drawing conclusions.

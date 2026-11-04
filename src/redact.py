@@ -30,22 +30,32 @@ _KEY_CHAR = r"[A-Za-z0-9]"
 # of a line never pulls in the start of the next line.
 _SEP = r"-?(?:\r?\n)?"
 
+# An optional line break, allowed inside the prefix itself.
+_BR = r"(?:\r?\n)?"
+
+# The prefix "rly_", any case (IGNORECASE below), possibly wrapped between
+# any two of its characters, e.g. "rly" at the end of one line and "_KEY..."
+# at the start of the next.
+_PREFIX = rf"r{_BR}l{_BR}y{_BR}_"
+
 RELAY_KEY = re.compile(
-    r"rly_"                              # prefix, any case (IGNORECASE below)
+    rf"{_PREFIX}{_BR}"                   # prefix, maybe wrapped, maybe followed by a line break
     rf"(?:{_KEY_CHAR}{_SEP}){{23}}"      # key chars 1-23, each maybe followed by - or a line break
     rf"{_KEY_CHAR}"                      # key char 24
     r"[A-Za-z0-9-]*",                    # anything key-like glued on the end (overlong key)
     re.IGNORECASE,
 )
 
-# Unchanged from the original: any bearer token of 20+ token characters.
-BEARER = re.compile(r"Bearer\s+[A-Za-z0-9._-]{20,}")
+# Any bearer token of 20+ token characters. "Bearer" in any case
+# (bearer, BEARER, ...), since HTTP auth schemes are case-insensitive.
+BEARER = re.compile(r"Bearer\s+[A-Za-z0-9._-]{20,}", re.IGNORECASE)
 
 PATTERNS = [RELAY_KEY, BEARER]
 
-# Leftover check, run on the output: "rly_" (any case) directly followed by a
-# key character. "rly_" followed by a space or punctuation is not a leftover.
-LEFTOVER = re.compile(r"rly_[A-Za-z0-9]", re.IGNORECASE)
+# Leftover check, run on the output: the prefix (any case, possibly wrapped
+# inside "rly_") directly followed by a key character. "rly_" followed by a
+# space, line break or punctuation is not a leftover.
+LEFTOVER = re.compile(rf"{_PREFIX}[A-Za-z0-9]", re.IGNORECASE)
 
 
 def redact(text):

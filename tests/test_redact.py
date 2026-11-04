@@ -55,6 +55,24 @@ class TestMustBeFullyRedacted(unittest.TestCase):
     def test_wrapped_after_hyphen(self):
         self.assertFullyRedacted(f"key: {KEY_HYPHEN[:14]}\n{KEY_HYPHEN[14:]}", f"key: {R}")
 
+    def test_wrapped_inside_prefix_before_underscore(self):
+        self.assertFullyRedacted(f"key: rly\n{KEY[3:]}", f"key: {R}")
+
+    def test_wrapped_inside_prefix_crlf(self):
+        self.assertFullyRedacted(f"key: rly\r\n{KEY[3:]}", f"key: {R}")
+
+    def test_wrapped_inside_prefix_after_r(self):
+        self.assertFullyRedacted(f"key: r\n{KEY[1:]}", f"key: {R}")
+
+    def test_wrapped_inside_prefix_after_rl(self):
+        self.assertFullyRedacted(f"key: rl\n{KEY[2:]}", f"key: {R}")
+
+    def test_wrapped_right_after_prefix(self):
+        self.assertFullyRedacted(f"key: rly_\n{KEY[4:]}", f"key: {R}")
+
+    def test_wrapped_inside_uppercase_prefix(self):
+        self.assertFullyRedacted(f"key: RLY\n_{KEY[4:]}", f"key: {R}")
+
     def test_overlong(self):
         self.assertFullyRedacted(f"key: {KEY}EXTRA99", f"key: {R}")
 
@@ -71,6 +89,14 @@ class TestMustBeFullyRedacted(unittest.TestCase):
     def test_bearer_other_token(self):
         self.assertFullyRedacted("Authorization: Bearer abcdefghij.klmnopqrst-uv",
                                  f"Authorization: {R}")
+
+    def test_bearer_lowercase(self):
+        self.assertFullyRedacted("authorization: bearer abcdefghij.klmnopqrst-uv",
+                                 f"authorization: {R}")
+
+    def test_bearer_uppercase(self):
+        self.assertFullyRedacted("AUTHORIZATION: BEARER abcdefghij.klmnopqrst-uv",
+                                 f"AUTHORIZATION: {R}")
 
     def test_two_keys_on_one_line(self):
         other = "rly_ZZZZa9s8d7f6g5h4j3k2l1m0"

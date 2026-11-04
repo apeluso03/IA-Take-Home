@@ -50,6 +50,12 @@ class TestCommandLineFailSafe(unittest.TestCase):
         self.assertEqual(result.stdout, "")
         self.assertNotEqual(result.stderr.strip(), "")
 
+    def test_leftover_with_wrapped_prefix_exits_nonzero(self):
+        # Short partial key whose prefix is split across a line break.
+        result = run_cli("partial key: rly\n_TESTq1w2e3\n")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+
     def test_leftover_reason_does_not_echo_value(self):
         result = run_cli("partial key: rly_TESTq1w2e3\n")
         self.assertNotIn("rly_TESTq1w2e3", result.stderr)
