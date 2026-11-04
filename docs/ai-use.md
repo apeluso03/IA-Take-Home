@@ -373,3 +373,23 @@
     If the new key can't be written to --out, it exits 3 with a separate message saying a key was created but not saved.
     An empty RELAY_BASE_URL gives exit 1. So do https://relay.example.internal set as an override, and any URL with a path.
     From earlier, the curl wording conflict and where --out should point are still open. I've stopped here for your review.
+
+10. Can you fill out a README.md
+
+    - Written for: reviewers of your take-home who are opening the repo for the first time.
+
+    I filled in README.md. The old file was a single title line saved in UTF-16; the new one is saved as UTF-8. It covers:
+
+    the incident background in a few lines
+    a table of every file and folder
+    how to run the tests and the evidence runner
+    what the fixed redactor and the rotate helper do, with their exit codes
+    I deliberately kept it free of your decisions. It only points readers to docs/memo.md for the decision and says nothing about whether to ship, change or block. Those docs are yours to write.
+
+    Things to check:
+
+    Empty docs are linked. docs/memo.md, guardrails.md, rollout.md, evidence/review-items.md and transcripts/ are currently empty, so those links lead nowhere until you fill them.
+    Incident summary: I wrote that the call timed out, the skill retried, and it posted to a customer-visible ticket. That comes from your PLAN.md notes. Please check it against the actual incident note, which I haven't seen.
+    Windows commands: the README uses python3 to match your SPEC and adds a note to use python on Windows.
+    Test time: "about 25 seconds" is from my run on your machine.
+    Nothing is committed.
