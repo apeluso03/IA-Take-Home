@@ -6,6 +6,7 @@ Library use:
 
 Command line:
     python3 src/redact.py < input.txt > output.txt
+    python3 src/redact.py input.txt > output.txt    (same rules, reads the file)
 
     exit 0  redacted text printed to stdout (empty input -> empty output)
     exit 1  a key-like value was still present after redacting;
@@ -70,8 +71,18 @@ def find_leftovers(text):
 
 
 def main():
+    args = sys.argv[1:]
+    if len(args) > 1:
+        print("redact: usage: redact.py [file]", file=sys.stderr)
+        return 2
     try:
-        text = sys.stdin.buffer.read().decode("utf-8")
+        if args:
+            # Optional file argument: read it instead of stdin.
+            with open(args[0], "rb") as f:
+                data = f.read()
+        else:
+            data = sys.stdin.buffer.read()
+        text = data.decode("utf-8")
     except (OSError, UnicodeDecodeError) as e:
         print(f"redact: could not read input: {type(e).__name__}", file=sys.stderr)
         return 2

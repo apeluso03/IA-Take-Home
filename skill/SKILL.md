@@ -57,8 +57,14 @@ The summary has only these fields:
 - last 4 characters of the new key
 
 Never include request or response bodies, headers, or keys.
-Before posting, run the summary through `python scripts/redact.py`.
-If it exits non-zero, do not post. Tell the user.
+
+Before posting:
+1. Write the summary to a file.
+2. Run: `python scripts/redact.py <file>`
+3. If it exits non-zero, do not post. Tell the user.
+4. If it exits 0, post exactly what it printed. Do not post the original summary.
+
+Never pass the summary text as a command-line argument.
 
 ## Never
 - Retry on your own.

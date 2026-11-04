@@ -2,6 +2,7 @@ import os
 import pathlib
 import subprocess
 import sys
+import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -70,6 +71,41 @@ class TestCommandLineFailSafe(unittest.TestCase):
         result = run_cli("")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "")
+
+    def run_file(self, text):
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / "summary.txt"
+            path.write_bytes(text.encode("utf-8"))
+            return subprocess.run(
+                [sys.executable, str(SCRIPT), str(path)],
+                capture_output=True, text=True, timeout=10,
+            )
+
+    def test_file_argument_matches_stdin_clean(self):
+        text = f"service=billing-sync outcome=success key={FAKE_KEY}\n"
+        from_stdin, from_file = run_cli(text), self.run_file(text)
+        self.assertEqual(from_file.returncode, 0, from_file.stderr)
+        self.assertEqual(from_file.returncode, from_stdin.returncode)
+        self.assertEqual(from_file.stdout, from_stdin.stdout)
+        self.assertNotIn(FAKE_KEY, from_file.stdout)
+
+    def test_file_argument_matches_stdin_leftover(self):
+        text = "partial key: rly_FAKEq1w2e3\n"
+        from_stdin, from_file = run_cli(text), self.run_file(text)
+        self.assertNotEqual(from_file.returncode, 0)
+        self.assertEqual(from_file.returncode, from_stdin.returncode)
+        self.assertEqual(from_file.stdout, "")
+        self.assertEqual(from_stdin.stdout, "")
+
+    def test_missing_file_argument_exits_nonzero_with_no_stdout(self):
+        with tempfile.TemporaryDirectory() as d:
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), str(pathlib.Path(d) / "missing.txt")],
+                capture_output=True, text=True, timeout=10,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertNotEqual(result.stderr.strip(), "")
 
     def test_unreadable_input_exits_nonzero_with_no_stdout(self):
         result = subprocess.run(

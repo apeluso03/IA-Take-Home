@@ -53,6 +53,8 @@ python3 run_tests.py --target original
 
 ### Task 2: Fixed redact.py
 - What to build: `src/redact.py` that fixes the gaps found in Task 1.
+- Optional file argument: `python redact.py <path>` reads from the file instead of stdin. Same output and exit code rules. If the file can't be read: nothing to stdout, reason to stderr, non-zero exit.
+- test_cli.py: Add test - File argument gives the same result as stdin, for both a clean file and one with a leftover key.
 - Required behavior:
   - Same `redact(text)` function name and signature.
   - Catches every format in Task 2's "must be fully redacted" list.
@@ -99,7 +101,7 @@ python3 run_tests.py --target original
   4. Rotate: `python scripts/rotate_key.py --service <name> --out <path>`. Say the helper reads RELAY_KEY itself, makes one call, no retries, saves the new key to the given file, and prints only the last 4 characters. Tell the agent not to call the API directly with curl or anything else. (Replaces original steps 2 and 3.)
   5. Failure or timeout: do not retry. If the helper reports "unknown," tell the user a key may already exist and someone should check Relay before trying again. Only retry after the user confirms that check. (Replaces original step 4.)
   6. Report result: service, time, last 4 characters. Note that anything using the old key needs updating, and mark `[Unverified: whether rotate revokes the old key]`.
-  7. Audit comment: internal only. If the project is customer-visible (like SUP) or visibility is unclear, don't post; give the summary to the user. Summary fields only: service, time, who asked, outcome (success/failed/unknown), last 4 characters. Never request or response bodies, headers, or keys. Run the summary through `python scripts/redact.py` first; if it exits non-zero, don't post. (Replaces original step 5.)
+  7. Audit comment: internal only. If the project is customer-visible (like SUP) or visibility is unclear, don't post; give the summary to the user. Summary fields only: service, time, who asked, outcome (success/failed/unknown), last 4 characters. Never request or response bodies, headers, or keys. Write the summary to a file. Run `python scripts/redact.py <file>`. If it exits non-zero, don't post. If it exits 0, post exactly what it printed, not the original summary. Never pass the summary text as a command-line argument.(Replaces original step 5.)
   8. A short "Never" list: retry on your own, pass a force or skip flag, print a key, use for non-Relay keys.
 - Style: plain, short sentences. Imperative voice. A heading per step. Under about 80 lines.
 
@@ -141,6 +143,7 @@ python3 run_tests.py --target original
   - Searching SKILL.md finds no `curl`, no `--force`, no `Bearer`, no "retry up to", and no `rly_` followed by key-like characters.
   - Every claim SKILL.md makes about the helper is backed by a test in Part C.
   - All tests pass with `python run_tests.py`, on Windows and Mac/Linux, with no installs.
+  - SKILL.md says how the summary is passed to redact.py, and that the posted text is redact.py's output.
 
 - Verify before committing:
   - Part A: I read it side by side with `original/SKILL.md`, tick off each original step, and run the banned-strings search.
