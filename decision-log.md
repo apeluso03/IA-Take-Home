@@ -14,7 +14,7 @@
     - Ran redact.py directly from command line, discovered that it returns no output to the command line, meaning the original run in the incident may have been run this way and not caught the unredacted key
         - The packet does not state whether the agent ran redact.py via command line or via call
 
-### Took Break
+### Took Break - Time elapsed ~ 80 mins
 - 910PM: Wrote and ran a test to simulate running redact.py from the command line
     - Found that redact.py can silently produce no output and throw no errors
 - 924PM: Wrote out steps for Task 2 in SPEC.md
@@ -22,8 +22,9 @@
         - Requires a second check
 - 950: Redact.py fix commited with checks for line wrapping, case sensitivity, passes all tests
 
-### Took Break
+### Took Break - Time elapsed ~ 120 mins
 - Plan for tomorrow: 
     - Check SKILL.md and come up with new/corrected version if needed
     - Write out memo and any other writing needed to finish up
     - Record video
+    - Try to keep work to around an hour per assignment instructions

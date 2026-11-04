@@ -176,3 +176,102 @@
 
     A short fragment can still slip through when the line breaks right after rly_. Your spec says rly_ followed by whitespace is not a leftover, so rly_ at the end of a line followed by abc123 on the next isn't flagged. Full-length keys wrapped there are redacted. Do you want the leftover check to treat a line break after rly_ as a leftover? Ordinary text with the prefix at a line end would then fail with exit code 1.
     The evidence runner can't see split prefixes. Its "lines still containing rly_" count checks one line at a time. So evidence/results/original/12_wrapped2.txt reports 0 leftovers even though the key there is not redacted. The "changed: NO" line in that file does show it. I can make the runner's count check across line breaks if you want; I left it alone because it's outside this task.
+
+5. Based on your analysis of the original skill.md, what changes should be made
+
+    - Here’s what I’d change, step by step. Treat these as candidates: for each one, decide whether you agree before it goes into SPEC Task 3.
+
+    Description
+
+    Problem: “Use when someone says a key leaked or needs rotating” doesn’t say Relay. It could fire on “my AWS key leaked” or “rotate my GitHub token.” That’s review item 6, and I’d disagree with it.
+
+    Change: Scope it to Relay service keys (the rly_ format) and say plainly that it isn’t for other providers.
+
+    Step 1: Read the key from $RELAY_KEY
+
+    Problem: Nothing happens if the variable is empty. Also, if this key is the one that leaked, whoever has it can call rotate too. The skill can’t fix that, but it shouldn’t hide it either.
+
+    Change: Stop with a clear message if the variable is unset or empty, and never print it.
+
+    Step 2: The curl call
+
+    Problems:
+
+    The key is on the command line, so other users on the machine can see it (review item 1). You’re on Windows, so test it there: start a long-running command with a fake key in it, then run Get-CimInstance Win32_Process | Select-Object CommandLine in a second window. That’s your evidence for item 1, and it may justify a higher severity than Medium.
+    -s hides errors, so a failure can look like an empty success.
+    <name> goes into the JSON as-is, with no check.
+
+    Change: Keep the key off the command line (a helper that reads the env var itself is the cleanest fix). Make failures loud. Check that the service name is a simple name before sending it.
+
+    Step 3: Show the new key to the user
+
+    Problem: Once the key is in chat, it’s in the agent’s transcript, logs, and possibly a shared session. That’s another leak path, and it ties back to the “no real credentials in transcripts” rule.
+
+    Change: Don’t show the full key. Save it straight to wherever keys belong, and show only a short fingerprint (like the last 4 characters) so the user can confirm which key it is.
+
+    Step 4: Retry up to 5 times
+
+    Problem: This is half the incident. A rotate call creates something. A timeout doesn’t mean it failed, so retrying can create extra keys nobody knows about. Up to five retries could make up to six keys. Review item 3 calls this “a good resilience pattern,” and the incident note shows otherwise.
+
+    Change: No automatic retry on rotate. On a timeout or unclear error, stop, tell the user a key may have been created, and have someone check before trying again. You could allow a retry only for errors that clearly mean “nothing happened,” like a connection refused before sending, but only if you can explain why that’s safe. Simpler is easier to defend.
+
+    Step 5: Post the full request and response to the ticket
+
+    Problem: This is the other half of the incident. The full request has the old key and the full response has the new one, so the comment is built out of secrets and relies on the redactor to clean it up. The ticket could also be public, like SUP was. Review items 2 and 4 both say “no change needed,” and your evidence and the incident note both disagree.
+
+    Change:
+
+    Post a short summary only: service, time, who asked, outcome, key fingerprint. No request or response bodies.
+    Post as an internal or private comment, and refuse public projects like SUP.
+    Run the fixed redact.py from the command line as a backup, and don’t post if it exits non-zero.
+    Step 6: Pass --force if urgent
+
+    Problem: No helper with --force exists, so review item 5 describes something nobody can check. And “urgent” is exactly when people skip safety steps.
+
+    Change: Remove it. If your own helper ends up needing an override, it shouldn’t be triggered just because the user says something is urgent.
+
+    Step 7: Don’t ask for confirmation
+
+    Problem: Rotation can’t be undone, it breaks anything still using the old key, and the agent picks the service name and ticket. “The user already asked” doesn’t confirm which service or where it posts.
+
+    Change: Ask once before rotating: confirm the service name and the ticket. One confirmation step, not a back-and-forth.
+
+    Missing from the skill entirely
+    Revoking the old key. It doesn’t say whether rotate invalidates the old key, or how to check.
+    Checking the new key works before telling the user it’s done.
+    What to do after a timeout, so the “did the first call create a key?” question from the incident gets answered instead of forgotten.
+
+    Keep unchanged
+
+    The skill name, the endpoint, and the idea of an audit trail. The intent is fine; the way it was done wasn’t.
+
+    On the helper
+
+    Several of these fixes (key off the command line, no blind retry, loud errors, name check, summary-only comment) are much stronger as code than as instructions to an agent. That leans toward writing a small Python helper. It also connects to your guardrail deliverable: whatever lives in the helper is enforced, and whatever stays in SKILL.md is advisory.
+
+6. I've finished tweaking task 3 in SPEC.md, go ahead with building
+
+    - h finds nothing: no curl, --force, Bearer, "retry up to", or rly_ followed by key-like characters. I also copied src/redact.py to skill/scripts/redact.py; the two files are byte-for-byte identical. I did that now because the audit-comment step already calls scripts/redact.py.
+
+    Where each original step went
+
+    Original step	Where it is now
+    1. Read key from $RELAY_KEY	2. Check the key is set (--check, never ask the user to paste the key)
+    2. curl call	3. Rotate (helper only, no direct API calls)
+    3. Show new key to user	3. Rotate (helper saves it to a file, prints only the last 4) and 5. Report the result
+    4. Retry 5 times	4. If it fails or times out (no retry; after "unknown", someone checks Relay and the user confirms before running again)
+    5. Post full request/response	6. Audit comment (internal only, summary fields only, run through redact.py first)
+    6. --force if urgent	1. Confirm before rotating (urgency doesn't skip the confirmation) and Never
+    7. Don't ask for confirmation	1. Confirm before rotating
+    The opening rules sit under a "Rules" heading and the closing list under "Never", so your required items 2–7 appear as steps 1–6.
+
+    Things in the spec that conflict or are missing. I didn't add anything for these.
+
+    curl conflicts with the banned-strings search. Part A says to tell the agent not to call the API "with curl or anything else", but the acceptance search bans curl from SKILL.md. I wrote "Do not call the Relay API yourself, by any tool or command" instead. Change it if you'd rather name curl and relax the search.
+    Where --out should point isn't specified. Nothing says whether the file should be outside the repo, outside any synced folder (this project is in OneDrive), or have restricted permissions. Right now the agent picks the path.
+    How to pass the summary to redact.py isn't specified. The script reads stdin, so the agent has to pipe text in or redirect a file. The summary never contains a key, so passing it on the command line isn't a key leak. But the skill doesn't say how to do it.
+    The scripts/ paths are relative to the skill folder. If the agent runs commands from another directory, python scripts/rotate_key.py won't be found.
+    Two smaller gaps:
+    "time" has no timezone or format.
+    The ticket is confirmed in step 1, but nothing says what to do if no ticket exists. The current wording would stop at step 1.
+    Tell me when Part A is approved and I'll build Parts B and C together.
