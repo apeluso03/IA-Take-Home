@@ -12,3 +12,8 @@
         - When the key is not lowercase
     - Worked in all other test cases, which must mean redact.py is only checking for the exact lowercase prefix, no hyphens, and no line wrapping pattern
     - Ran redact.py directly from command line, discovered that it returns no output to the command line, meaning the original run in the incident may have been run this way and not caught the unredacted key
+        - The packet does not state whether the agent ran redact.py via command line or via call
+
+### Took Break
+- 910PM: Wrote and ran a test to simulate running redact.py from the command line
+    - Found that redact.py can silently produce no output and throw no errors

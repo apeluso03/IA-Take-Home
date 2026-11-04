@@ -1,0 +1,3 @@
+PS C:\Users\alexp\OneDrive\Desktop\IA Take Home> cmd /c "python3 original\redact.py < evidence\inputs\01_plain.txt"
+PS C:\Users\alexp\OneDrive\Desktop\IA Take Home> echo $LASTEXITCODE
+0

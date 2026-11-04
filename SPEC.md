@@ -28,6 +28,7 @@ skill/
   <helper>             # if needed
 tests/
   test_redact.py
+  test_cli.py
 run_tests.py
 evidence/
   inputs/              # my hand-written test inputs

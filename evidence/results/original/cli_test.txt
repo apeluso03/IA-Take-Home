@@ -1,0 +1,29 @@
+PS C:\Users\alexp\OneDrive\Desktop\IA Take Home> $env:REDACT_TARGET="original"; python -m unittest tests/test_cli.py -v
+test_exits_with_success_code (tests.test_cli.TestCommandLine.test_exits_with_success_code) ... ok
+test_key_on_stdin_is_redacted_on_stdout (tests.test_cli.TestCommandLine.test_key_on_stdin_is_redacted_on_stdout) ... FAIL
+test_normal_text_passes_through_unchanged (tests.test_cli.TestCommandLine.test_normal_text_passes_through_unchanged) ... FAIL
+
+======================================================================
+FAIL: test_key_on_stdin_is_redacted_on_stdout (tests.test_cli.TestCommandLine.test_key_on_stdin_is_redacted_on_stdout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\alexp\OneDrive\Desktop\IA Take Home\tests\test_cli.py", line 30, in test_key_on_stdin_is_redacted_on_stdout
+    self.assertIn("[REDACTED]", result.stdout)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '[REDACTED]' not found in ''
+
+======================================================================
+FAIL: test_normal_text_passes_through_unchanged (tests.test_cli.TestCommandLine.test_normal_text_passes_through_unchanged)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\alexp\OneDrive\Desktop\IA Take Home\tests\test_cli.py", line 36, in test_normal_text_passes_through_unchanged
+    self.assertEqual(result.stdout, text)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '' != 'Rotated the key for billing-sync. See ticket SUP-5521.\n'
++ Rotated the key for billing-sync. See ticket SUP-5521.
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.227s
+
+FAILED (failures=2)
