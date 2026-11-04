@@ -275,3 +275,101 @@
     "time" has no timezone or format.
     The ticket is confirmed in step 1, but nothing says what to do if no ticket exists. The current wording would stop at step 1.
     Tell me when Part A is approved and I'll build Parts B and C together.
+
+7. I've updated the SPEC.md to address how the summary should be passed to redact.py.
+
+ - Both parts of your spec change are in. The fixed version passes all 40 tests and the original fails 24 of them. Nothing is committed.
+
+    Task 2: redact.py takes an optional file argument (src/redact.py)
+
+    python redact.py <path> reads that file instead of stdin. The output and exit codes are the same as with stdin.
+
+    If the file can't be read (missing, unreadable, or not UTF-8), it prints nothing to stdout, gives a short reason on stderr, and exits with code 2.
+
+    With more than one argument it prints a usage line to stderr and exits with code 2. The spec doesn't cover this case, so check you're happy with it.
+
+    I copied the new version to skill/scripts/redact.py again; the two files are identical.
+
+    I added three tests to test_cli.py:
+
+    a file argument gives the same result as stdin for a clean file,
+    the same for a file with a leftover key,
+    a missing file exits non-zero with nothing on stdout.
+    The first two are what the spec asked for; the third is my addition. Every test key starts with rly_FAKE.
+
+    Part A: step 6 of skill/SKILL.md now says:
+
+    Write the summary to a file.
+    Run python scripts/redact.py <file>.
+    If it exits non-zero, don't post, and tell the user.
+    If it exits 0, post exactly what redact.py printed, not the original summary.
+    It also says never to pass the summary text as a command-line argument. The file is now 73 lines, and the banned-strings search still finds nothing.
+
+    From my last reply, the curl wording conflict, where --out should point, the relative scripts/ paths, the time format, and the missing-ticket case are still open. I'll start Parts B and C once you approve Part A.
+
+8. If a ticket does not exist, rotation should still go ahead. The agent should still confirm the service name and whether there is a ticket present. The agent should never guess or create a ticket of its own. Step 7 with no ticket should result in the agent not posting anything and instead giving the user the redacted summary for filing themselves.
+
+    - I've updated skill/SKILL.md for the no-ticket case. It's now 79 lines, just under the limit, and the banned-strings search still finds nothing.
+
+    Step 1 (Confirm before rotating)
+
+    The one question now confirms the service name and whether there is a ticket, and which one if so.
+    If there's no ticket, the rotation still goes ahead.
+    The agent must never guess a ticket or create one.
+    Step 6 (Audit comment)
+
+    The agent posts only to the internal ticket the user confirmed in step 1.
+    It posts nothing if there's no ticket, if the project is customer-visible (like SUP), or if it's unsure. In each of those cases it gives the user the redacted summary to file themselves.
+    The redaction check now runs before posting and before handing the summary to the user. If redact.py exits non-zero, the agent neither posts nor shares the summary. Otherwise it uses exactly what redact.py printed.
+    That last point is a change to the customer-visible path too. Before, it said to give the user "the summary" without saying redacted. I made all three no-post cases hand over the redacted version so they behave the same. Tell me if you meant the customer-visible case to work differently.
+
+    SPEC.md still describes the old ticket behavior in Part A items 2 and 7, so you may want to update it to match. I haven't touched it.
+
+    Two items from my earlier list are still open: the curl wording conflict and where --out should point. I'll start Parts B and C once you approve Part A.
+
+9. Go ahead now with part b and c
+
+    - I built Parts B and C. All 56 tests pass with python run_tests.py, which took about 25 seconds in total, and no __pycache__ folders were left behind. Nothing is committed.
+
+    I've only run this on Windows. "Passes on Mac/Linux" is still unchecked; the code uses only cross-platform standard library calls.
+
+    Part B: skill/scripts/rotate_key.py
+
+    Exit codes are 0 for ok, 1 for bad input (nothing sent), 2 for a server error, and 3 for an unknown outcome. The output lines are worded exactly as the spec gives them.
+    Before anything is sent, the helper checks things in this order: service name, RELAY_BASE_URL, RELAY_KEY, then --out. It then makes exactly one POST with a 10-second timeout. There is no retry anywhere in the code.
+    No code path prints a key. There are 9 print calls, all listed by line in the grep above. The only one that shows anything from the key is last4= on success. Server error bodies are never read. A last-resort handler catches any unexpected error and prints only its type name, never a traceback.
+    Part C: tests/test_rotate_key.py
+
+    All tests use a fake server on 127.0.0.1, and every key starts with rly_FAKE.
+    Everything on the spec's list is covered:
+    --check with the key set, unset, and empty
+    bad service name (5 variants)
+    success
+    500 error
+    timeout (10.4 seconds, under the 15 limit)
+    --out already exists
+    six non-local base URLs, including http://localhost@example.com and http://127.0.0.1.example.com
+    the key arrives in the header and isn't in the command-line arguments
+    Tests I added beyond the list:
+    the request's method, path and body
+    a dropped connection exits 3
+    a redirect isn't followed
+    a missing key sends nothing
+    a localhost override works
+    flags like --force, --skip, --retry and --key are rejected
+    Every claim SKILL.md makes about the helper has a test. "Reads RELAY_KEY itself" is the header test. "One call, no retries" is the one-request count on success, 500 and timeout. "Saves to the file" and "prints only the last 4" are the success test.
+    Things I added that the spec didn't list, all to protect the key. Remove any you don't want.
+
+    Redirects are refused. urllib follows them by default and sends the Authorization header to the new address, which could be anywhere. A redirect now exits 2.
+    The --out file is created first, before anything is sent. It's created only if it doesn't exist and is readable only by its owner. A bad path therefore fails before a key exists. On failure or unknown, the file is deleted.
+    Proxies are skipped for the local test URL, so the key never goes through a proxy in plain text. Real https calls still use any configured proxy.
+    RELAY_KEY containing whitespace or control characters exits 1. Otherwise urllib's error message could include the key.
+    Bad arguments exit 1, not argparse's default 2, because 2 means "server error" here. Combining --check with --service or --out is also rejected.
+    Choices the spec didn't cover
+
+    Where the new key is in the response: I assumed a "new_key" field, based on your 10_comment.txt input. Please confirm this against the real Relay response format.
+    Every error that isn't a server response gives exit 3 (unknown). That includes connection refused and a name that doesn't resolve, even though nothing may have been sent. I chose the cautious reading.
+    A 200 response without a usable new_key gives exit 3. The rotation may have happened.
+    If the new key can't be written to --out, it exits 3 with a separate message saying a key was created but not saved.
+    An empty RELAY_BASE_URL gives exit 1. So do https://relay.example.internal set as an override, and any URL with a path.
+    From earlier, the curl wording conflict and where --out should point are still open. I've stopped here for your review.

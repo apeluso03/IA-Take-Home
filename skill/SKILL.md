@@ -11,9 +11,11 @@ description: Rotate a Relay service key (keys that start with rly_). Use only fo
 - Never print or paste any key into chat, a command line, or a ticket.
 
 ## 1. Confirm before rotating
-Ask the user one question that confirms both the service name and the ticket.
+Ask the user one question that confirms both the service name and whether there is a ticket (and which one).
 Wait for a yes. Ask even if the user says it is urgent.
 The service name must use only lowercase letters, digits, and hyphens. If it does not, stop.
+If there is no ticket, still go ahead with the rotation.
+Never guess a ticket. Never create one.
 
 ## 2. Check the key is set
 Run: `python scripts/rotate_key.py --check`
@@ -46,8 +48,12 @@ Say that anything still using the old key needs updating.
 [Unverified: whether rotate revokes the old key]
 
 ## 6. Audit comment
-Post only to an internal ticket.
-If the project is customer-visible (like SUP), or you are not sure, do not post. Give the summary to the user instead.
+Post only to the internal ticket the user confirmed in step 1.
+Do not post anything if:
+- there is no ticket,
+- the project is customer-visible (like SUP), or
+- you are not sure.
+In those cases, give the user the redacted summary to file themselves.
 
 The summary has only these fields:
 - service
@@ -58,11 +64,11 @@ The summary has only these fields:
 
 Never include request or response bodies, headers, or keys.
 
-Before posting:
+Before posting or giving it to the user:
 1. Write the summary to a file.
 2. Run: `python scripts/redact.py <file>`
-3. If it exits non-zero, do not post. Tell the user.
-4. If it exits 0, post exactly what it printed. Do not post the original summary.
+3. If it exits non-zero, do not post or share it. Tell the user.
+4. If it exits 0, use exactly what it printed. Never use the original summary.
 
 Never pass the summary text as a command-line argument.
 
