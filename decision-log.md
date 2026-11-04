@@ -21,3 +21,9 @@
     - Decided to have new redact exit with error code and prevent prints to stdout if it detects a key or likely key value still remains
         - Requires a second check
 - 950: Redact.py fix commited with checks for line wrapping, case sensitivity, passes all tests
+
+### Took Break
+- Plan for tomorrow: 
+    - Check SKILL.md and come up with new/corrected version if needed
+    - Write out memo and any other writing needed to finish up
+    - Record video
