@@ -150,3 +150,29 @@
     The Bearer pattern only matches capital-B Bearer. A non-Relay token after bearer or BEARER would slip through. Relay keys are still caught by the rly_ pattern either way.
     tests/__pycache__/ was committed in your earlier "CLI Test and results" commit. You may want to remove it or add a .gitignore.
     Your own checks for Task 2 are still to do: try your own new inputs and read through the regex yourself. I didn't touch the decision log or the AI-use log.
+
+4. In reference to the key split inside the prefix, I added a new test for exactly that case. The redaction should definitely apply to this case as well. Bearer should also not be case sensitive, so any instance of it even in upper or lowercase needs to be caught. A gitignore should also be added, with pycache removed.
+
+    - All three changes are in. The fixed version now passes all 37 tests, the original fails 22 of them, and original/ is untouched. Nothing is committed.
+
+    Key split inside the prefix (src/redact.py)
+
+    The rly_ prefix may now have a line break between any two of its characters, in any letter case, and either \n or \r\n line endings.
+    The leftover check uses the same prefix rule. So a short partial key like rly / _abc123 now exits with code 1 and prints nothing to stdout.
+    Your 12_wrapped2.txt is now fully redacted. I re-ran the evidence runner for both targets, so evidence/results/fixed/12_wrapped2.txt is updated.
+    I added draft tests for this: a break after r, after rl, after rly, and right after rly_, plus a \r\n version and an uppercase version. There's also a command-line test for a short partial key with a split prefix.
+    Bearer is case-insensitive. bearer, BEARER and any other mix are now caught, and there are tests for lowercase and uppercase.
+
+    .gitignore and pycache
+
+    The new .gitignore covers __pycache__/ and *.pyc.
+    tests/__pycache__/test_cli.cpython-313.pyc is staged for removal from git, and every local __pycache__ folder is deleted.
+    Inputs not in any test file
+
+    yearly / and quarterly. is left unchanged.
+    BEARER rly_… is redacted.
+    The rly_ / prefix marks a key. is left unchanged with exit code 0.
+    Two things you should know:
+
+    A short fragment can still slip through when the line breaks right after rly_. Your spec says rly_ followed by whitespace is not a leftover, so rly_ at the end of a line followed by abc123 on the next isn't flagged. Full-length keys wrapped there are redacted. Do you want the leftover check to treat a line break after rly_ as a leftover? Ordinary text with the prefix at a line end would then fail with exit code 1.
+    The evidence runner can't see split prefixes. Its "lines still containing rly_" count checks one line at a time. So evidence/results/original/12_wrapped2.txt reports 0 leftovers even though the key there is not redacted. The "changed: NO" line in that file does show it. I can make the runner's count check across line breaks if you want; I left it alone because it's outside this task.
