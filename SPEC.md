@@ -50,3 +50,26 @@ python3 run_tests.py --target original
 - What to build: A small script that runs a chosen redact.py (original or fixed) over every file in `evidence/inputs/` and saves the output to `evidence/results/`, with input and output side by side.
 - Acceptance criteria: Works on both versions. Does not change any input file. Output makes it easy to see what was and wasn't redacted.
 - Verify before committing: I run it against the original and read every result myself.
+
+### Task 2: Fixed redact.py
+- What to build: `src/redact.py` that fixes the gaps found in Task 1.
+- Required behavior:
+  - Same `redact(text)` function name and signature.
+  - Catches every format in Task 2's "must be fully redacted" list.
+  - Leaves normal text unchanged.
+  - Works from the command line: reads text from stdin, prints the redacted text to stdout.
+  - If a key-like string still remains after redacting, or input can't be read, exit with an error code instead of 0
+    - Print a short reason to stderr, exit with nonzero code
+    - Empty input returns empty output with exit 0
+  - Check for leftover values
+    - 'rly_' follwed by key-like characters
+    - 'rly_' follow by a space or punctuation is not leftover
+- Acceptance criteria:
+  - All tests in test_redact.py and test_cli.py pass with `--target fixed`.
+  - Same tests still fail with `--target original`.
+  - No changes to `original/`.
+  - Standard library only.
+- Verify before committing:
+  - Run both targets and save output to evidence/results.
+  - Try 3 or more inputs NOT in the test files to check it isn't overfit.
+  - Read the new regex or logic myself and be able to explain each part.

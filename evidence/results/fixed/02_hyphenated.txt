@@ -1,0 +1,18 @@
+input file : evidence/inputs/02_hyphenated.txt
+redact.py  : fixed (src/redact.py)
+changed    : yes
+[REDACTED] markers added: 1
+lines still containing 'rly_' (any case): 0
+
+=== SIDE BY SIDE ===
+line 1  [CHANGED]
+  IN : New key issued: rly_FAKE-a1b2-c3d4-e5f6-g7h8-i9j0
+  OUT: New key issued: [REDACTED]
+
+=== RAW INPUT ===
+New key issued: rly_FAKE-a1b2-c3d4-e5f6-g7h8-i9j0
+=== END RAW INPUT ===
+
+=== RAW OUTPUT ===
+New key issued: [REDACTED]
+=== END RAW OUTPUT ===

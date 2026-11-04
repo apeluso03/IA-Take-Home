@@ -17,3 +17,6 @@
 ### Took Break
 - 910PM: Wrote and ran a test to simulate running redact.py from the command line
     - Found that redact.py can silently produce no output and throw no errors
+- 924PM: Wrote out steps for Task 2 in SPEC.md
+    - Decided to have new redact exit with error code and prevent prints to stdout if it detects a key or likely key value still remains
+        - Requires a second check

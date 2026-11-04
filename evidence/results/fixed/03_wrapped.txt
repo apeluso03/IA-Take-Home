@@ -1,0 +1,23 @@
+input file : evidence/inputs/03_wrapped.txt
+redact.py  : fixed (src/redact.py)
+changed    : yes
+[REDACTED] markers added: 1
+lines still containing 'rly_' (any case): 0
+
+=== SIDE BY SIDE ===
+line 1  [CHANGED]
+  IN : New key issued: rly_FAKEa1b2c3d4
+  OUT: New key issued: [REDACTED]
+line 2  [CHANGED]
+  IN : e5f6g7h8i9j0
+  OUT: <no line>
+NOTE: line count differs (input 2, output 1)
+
+=== RAW INPUT ===
+New key issued: rly_FAKEa1b2c3d4
+e5f6g7h8i9j0
+=== END RAW INPUT ===
+
+=== RAW OUTPUT ===
+New key issued: [REDACTED]
+=== END RAW OUTPUT ===
