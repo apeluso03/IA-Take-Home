@@ -690,3 +690,33 @@ with these decisions inplemented go ahead with b and c now
     Re-running `run_all.py` also regenerated `evidence/results/test-report.md`. Nothing is committed.
 
     The memo, `guardrails.md` and `rollout.md` still describe ticket comments from before Task 4. Those are yours to update, as listed in the spec's follow-ups.
+
+21. In the memo, update everything after what changed and why to reflect the changes made for the new rule
+
+ - Written for: readers of your decision memo.
+
+    I rewrote everything in [docs/memo.md](docs/memo.md) from "What changed and why" to the end. The first 16 lines, your Decision paragraph and your "What changed after new rule" section, are byte-for-byte the same as in your last commit.
+
+    **What changed in those sections**
+    - **The helper section** now covers exit 4, checking the ticket ID, and never repeating bad values back.
+    - **A new section, "The helper writes the audit trail, not the agent",** covers where the log lives, the started, final and rejected entries, the fields, no key material, and the log check before anything happens.
+    - **The skill section** follows the new rule:
+    - the agent confirms only the service name
+    - the ticket ID is optional and goes only into the log
+    - the agent never writes to tickets or touches the log
+    - it tells the user nothing may be added to the ticket by hand
+
+    The old bullets about ticket comments, internal-only posting and redacting the summary are gone.
+    - **The redactor section** says the fix is kept for future use, but the skill no longer uses it.
+    - **The tests section** adds `evidence/try_errors.py`.
+    - **"What was not changed"** now covers:
+    - the ticket system itself, since nothing stops someone pasting details in by hand
+    - the audit log and `--out` both being local placeholders, and the spoofable "who ran it" field
+    - an updated list of risks only the skill can enforce
+    - "a real agent session" added to "Not tested"
+
+    **One concern: length.** The memo is now about 1,400 words. That's past the "under 2 pages" you asked for last time, which was around 930 words. Most of the growth is the new audit-log section plus your new section. If you want it back under two pages, the easiest cuts are:
+    - merging the helper and audit-log sections,
+    - shortening "What was not changed" to a pointer to `unverified.md` and `guardrails.md`.
+
+    I can make those cuts if you like. Nothing is committed.

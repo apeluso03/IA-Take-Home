@@ -19,42 +19,63 @@ What I gave up:
 **1. The rotate call moved out of the skill and into a helper (`skill/scripts/rotate_key.py`).**
 - **The key is never on the command line.** The helper reads `RELAY_KEY` itself. In v0.3 the shell expanded the key into the curl command, where any process listing could read it (review item 1, confirmed on Windows).
 - **It makes exactly one call and never retries.** v0.3 retried up to 5 times after a timeout. The incident note says nobody knows whether the first, timed-out call created a key.
-- **Timeouts are reported as `unknown` (exit 3), separately from `failed` (exit 2).** On `unknown`, someone must check Relay before anyone tries again.
+- **Each outcome has its own exit code:**
+  - `failed` (exit 2) means no key was created.
+  - `unknown` (exit 3) means a key may exist, and someone must check Relay before anyone tries again.
+  - Exit 4 means the call finished but its audit entry couldn't be written; never retry.
 - **The new key is saved to a file, and only its last 4 characters are printed.** v0.3 showed the full new key in chat.
-- **The service name is checked before any call.** A key file that already exists is never overwritten.
+- **Inputs are checked before any call.** The service name and the optional ticket ID (`SUP-5521` format) are validated, and a key file that already exists is never overwritten.
+- **Bad values are never repeated back.** Errors name the field instead, e.g. "invalid service name (not shown)", because the value could be a pasted key.
 - **It has no force, skip or retry flags.** Redirects are refused so the key can't be forwarded, and the base URL can only be overridden to point at this machine, for tests.
 
-**2. The skill (`skill/SKILL.md`) was rewritten around the helper.**
-- **The agent confirms the service and the ticket before rotating, even when the user says it's urgent.** v0.3 said not to ask and offered `--force` for urgent requests.
-- **A missing ticket doesn't block rotation.** Getting the key rotated matters most. With no ticket, the agent posts nothing and hands the redacted summary to the user to file. It never guesses a ticket or creates one.
-- **The audit comment is a short summary, not the full request and response.** It holds only the service, time, who asked, outcome, and last 4 characters. v0.3's comment contained both the old key (in the header) and the new key (in the response body), which left the redactor as the only defense.
-- **Comments go to internal tickets only.** If a ticket is customer-visible (like SUP) or unclear, the agent posts nothing.
-- **The summary is redacted from a file, and only redact.py's output is posted.** If redact.py exits non-zero, nothing is posted. Passing the summary on the command line would repeat the process-list problem.
+**2. The helper writes the audit trail, not the agent.**
+- **Every attempt is appended to an audit log**, at `RELAY_AUDIT_LOG` or by default `~/.relay/rotation-audit.jsonl`.
+- **There's an entry at each step:**
+  - `started`, before the request, so a crash mid-call still leaves a trace
+  - the final outcome
+  - `rejected`, for bad input, which records the intent to rotate
+- **Each entry holds only** the time, service, who ran it, outcome, and the ticket ID if there is one. A rejected entry adds a reason code instead of the bad value.
+- **No part of any key is ever logged**, not even the last 4.
+- **`--check` confirms the log can be written before anything happens.** If it can't be, the helper refuses to rotate.
+
+**3. The skill (`skill/SKILL.md`) was rewritten around the helper and the new rule.**
+- **The agent confirms the service name before rotating, even when the user says it's urgent.** v0.3 said not to ask and offered `--force` for urgent requests.
+- **The ticket ID is optional.** It is only passed to the helper to record in the audit log. A missing ticket doesn't block rotation, and the agent never guesses or creates one.
+- **The agent never writes to any ticket or the ticket system.** That includes the result, the last 4 characters and any key ID. It tells the user the rotation is recorded in the audit log, and that no rotation details may be added to the ticket, even by hand. v0.3 posted the full request and response, with both keys, to a customer-visible ticket.
+- **The agent never writes, edits, moves or deletes the audit log.**
 - **The description now limits the skill to Relay (`rly_`) keys.** v0.3's description could trigger on any leaked key (review item 6).
 
-**3. The redactor was fixed (`src/redact.py`, with a copy in `skill/scripts/`).**
+**4. The redactor was fixed (`src/redact.py`, with a copy in `skill/scripts/`).**
 - **It catches the formats the original missed:** hyphenated keys, upper- and mixed-case prefixes, keys wrapped across lines (including inside the `rly_` prefix), overlong keys, and `Bearer` in any case (review item 2).
-- **It works from the command line.** The original printed nothing and exited 0 when run that way, so "run redact.py over the comment" could silently do nothing.
-- **It fails closed.** If anything key-like remains after redacting, it prints nothing and exits non-zero.
+- **It works from the command line and fails closed.** The original printed nothing and exited 0 when run that way. The fix prints nothing and exits non-zero if anything key-like remains.
+- **It's kept for future use.** Under the new rule the skill posts nothing, so it no longer uses the redactor.
 
-**4. Tests and evidence were added.** These are hand-written inputs, unit and command-line tests, and tests that run the helper against a fake local Relay server. `python3 run_all.py` runs everything and writes one report (`evidence/results/test-report.md`). The fixed versions pass every test. The original redactor fails 24 of 40, which shows its gaps.
+**5. Tests and evidence were added.**
+- **What's covered:** hand-written inputs, unit and command-line tests, and tests that run the helper (including the audit log) against a fake local Relay server.
+- **`python3 run_all.py` runs everything** and writes one report (`evidence/results/test-report.md`). The fixed versions pass every test. The original redactor fails 24 of 40, which shows its gaps.
+- **`python3 evidence/try_errors.py` walks through each error case the skill describes.** For each one it shows the exit code, the output and the log entries.
 
 ## What was not changed
 - **`original/` was not edited.** The v0.3 skill and redactor stay exactly as given, for comparison.
-- **The skill's name, its trigger on leaked or rotating keys, and its audit trail stayed.** The trail is now a redacted summary instead of the full request and response.
+- **The skill's name and its trigger on leaked or rotating keys stayed.** There is still an audit trail, but it's now a helper-written log instead of a ticket comment.
 - **Nothing on the Relay side changed.**
   - It's still unverified whether rotating revokes the old key; the skill marks this as unverified.
   - Whether the timed-out call in the incident created a key still needs a manual check before rollout.
   - Anyone holding the leaked key can still call rotate themselves.
-- **Ticket visibility in SUP was not changed.** The skill avoids customer-visible tickets, but nothing yet stops an agent comment from being public. Whether agent comments can default to internal is an open question.
-- **Where `--out` should point is still a placeholder.** In a real setup it would most likely be a Relay secret store.
+- **The ticket system was not changed.** The agent no longer writes to tickets, but nothing on the ticket side stops someone pasting rotation details in by hand.
+- **The log and `--out` are local placeholders.**
+  - The audit log is a local file, and its "who ran it" field comes from the OS login name, which can be spoofed. In a real setup both would come from a central, Relay-side record.
+  - `--out` would most likely be a Relay secret store.
 - **Some risks are not enforced in code.** The skill can ask for these, but code can't guarantee them:
   - asking for confirmation
-  - refusing unclear tickets
   - not retrying after `unknown`
-  - an agent that never loads the skill
+  - not writing to tickets
+  - not touching the audit log
+  - an agent that never loads the skill (no log entry is written)
   - a user pasting a key into chat
-  - secret formats the redactor doesn't know
 
   These are listed in `docs/guardrails.md` and `docs/unverified.md`.
-- **Not tested:** on Linux or Mac, against a real Relay service, or with a real ticket system.
+- **Not tested:**
+  - on Linux or Mac
+  - against a real Relay service
+  - in a real agent session following the skill
