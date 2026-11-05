@@ -483,5 +483,162 @@
 
     Your SPEC lists "anything in the memo" under "Do not decide". I took this request as overriding that for this memo, so I only described what was built and what's open, and made no judgment calls. Every claim comes from the repo, your decision log, review-items.md, guardrails.md or unverified.md. Please check two of them:
 
-"Fails 24 of 40" is the count from my last run_all.py run.
-"Anyone holding the leaked key can still call rotate themselves" comes from your own review notes. It's reasoning only and wasn't tested.
+    "Fails 24 of 40" is the count from my last run_all.py run.
+    "Anyone holding the leaked key can still call rotate themselves" comes from your own review notes. It's reasoning only and wasn't tested.
+
+15. A new requirement change for the skill has come out and it is going to affect what has been built so far. It states that nothing that comes from a key rotation may be written to any ticket. That includes the response, a masked key and a key ID. For this skill, the agent may not write to the ticket system at all. An audit trail must still exist.
+This new rule will affect step 7 in SKILL.md, having no ticket is no longer passable, step 1 in SKILL.md having ticket confirmation also no longer holds. In addition, I believe that the fixed redact.py may no longer be necessary, but since it is already built it should be kept. 
+For next steps what I want is a Task 4 in SPEC.md that aims to adress this and update SKILL.md to match the new requirement. Just write out a task 4 and then stop and consult me before building anything so I can approve. In order to conform to this new rule, my initial thought would be to have the helper append to an audit log on every rotation. This should include the time, service, who ran it, the outcome (ok, failed, unknown), and the ticket ID if there is one. The agent should never write this log on its own, only the code does.
+
+ - Task 4 is now at the end of [SPEC.md](SPEC.md). I haven't built anything. Nothing above Task 4 changed; git shows "1 deletion" only because the file's last line had no line ending.
+
+    It follows the same shape as Task 3: update SKILL.md, stop for your review, then build the helper's audit log and its tests together, then stop. It also says to keep `src/redact.py` and its tests unchanged, and to remove every mention of `redact.py` from SKILL.md.
+
+    **Your audit-log idea, as written in the spec**
+    - **Who writes it:** only the helper. SKILL.md tells the agent never to write, edit, move or delete the log.
+    - **Format:** one JSON object per line, appended and never rewritten.
+    - **Fields, exactly five:** `time` (UTC), `service`, `user`, `outcome` (`ok`/`failed`/`unknown`), and `ticket` (or `null`).
+    - **No key material:** the log never holds any part of a key, not even the last 4. That's stricter than the new rule requires, since the log isn't a ticket, but it matches your field list.
+    - **Ticket ID:** passed with a new optional `--ticket <id>` flag. Having no ticket never blocks rotation.
+
+    **Choices I marked (open) for you to decide**
+    1. **Ticket ID format.** I proposed uppercase letters, a hyphen, then digits, like `SUP-5521`.
+    2. **Where the log lives.** I proposed an env var, `RELAY_AUDIT_LOG`, with no default path: if it's unset, the helper refuses to run. A fixed default path would be simpler but harder to keep out of the repo or OneDrive.
+    3. **How "who ran it" is found.** I proposed the OS login name. It's easy to get but only as trustworthy as the machine; an env var could be faked more easily.
+    4. **Log a `started` entry before the call?** I recommend it. If the helper crashes or is killed mid-call, the log still shows that an attempt happened, which is the exact gap from the incident.
+    5. **Log bad-input runs** that exit before any request? I proposed not to, since no rotation was attempted.
+    6. **What if writing the final log entry fails after the call?** I proposed: still print the outcome, warn on stderr, and exit 3. Separately, the helper checks the log can be written *before* calling and refuses to run if it can't.
+    7. **What the agent tells the user about the ticket.** The rule bars rotation details from tickets. Should the agent say anything about updating the ticket by hand, or stay silent?
+
+    **Two things the code can't enforce**
+    - **The agent writing to the log or tickets.** "The agent never writes the log" and "never writes to tickets" are instructions in SKILL.md, not something the helper can stop. Real enforcement would mean the agent's session has no write access to the log and no ticket-system access.
+    - **A missing trail when the helper isn't used.** If the agent improvises instead of running the helper, no log entry is written.
+
+    **Follow-ups I listed but left for you**
+    - Whether to keep `skill/scripts/redact.py`. `run_all.py` currently checks that it matches `src/redact.py`.
+    - Updating the memo, `guardrails.md`, `rollout.md` and the README, which all still describe ticket comments.
+    - Where the log lives in a real setup, and who can read it.
+
+    Let me know your answers to the open items, or approve the spec as written, and I'll start Part A.
+
+16. (1) Ticket ID format proposed works
+(2) Local file written by the helper with its location set as an env var; in real deployment this should be somewhere more central like relay's server sided record, but relay is not being used here
+(3) Use getpass.getuser(). weak since it can be edited but in real build would probably pull from relay
+(4) Yes, even if the call does not finish properly this should be logged to ensure all bases are covered
+(5) I actually still do want these logged as well, even if no rotation ended up being attempted it should show in the log as intent to rotate for posterity
+(6)  Since rotation would have already occured the steps should go like this:
+- Don’t retry the rotate call. The key exists even if the record is missing
+- Still print the normal outcome line
+- Print a clear warning to stderr: the rotation finished, but the audit entry couldn’t be written.
+Exit with its own code, like 4, meaning “rotated, audit incomplete.”
+(7) Add to SKILL.md, "Tell the user the rotation is recorded in the audit log under the ticket ID, and that no rotation details may be added to the ticket, including by hand"
+
+Keep redact.py even if the new skill may not need it, it's good to have in case of future changes
+
+Everything else looks good to go to start Part A
+
+- Part A is done and I've stopped before Part B, as the task says. Nothing is committed.
+
+    **SPEC.md, Task 4:** your answers are folded in.
+    - Ticket ID format, log location set by an env var, `getpass.getuser()`, logging a `started` entry, logging bad-input runs as `rejected`, and exit 4.
+    - Your step 6 sentence, and keeping `redact.py` as decided.
+
+    **[skill/SKILL.md](skill/SKILL.md):** 73 lines. The banned-strings search finds none of the Task 3 strings, nor `redact.py`, "comment" or "post".
+    - **Rules:** a new rule, "Never write to any ticket or the ticket system, for any reason."
+    - **Step 1:** confirms only the service name. In the same question it asks for an optional ticket ID in the `SUP-5521` format, and no ticket doesn't block rotation. The agent never guesses a ticket ID or creates a ticket.
+    - **Step 3:** the command now includes `[--ticket <id>]`, and the step says the helper writes the audit log itself.
+    - **Step 4:** adds exit 4. The agent doesn't retry and tells the user the key was rotated but the audit record is missing.
+    - **Step 6:** the audit comment step is replaced by "Audit log".
+    - The agent must not touch the log or put anything in any ticket.
+    - It then tells the user your sentence. When there's no ticket ID, it says only that the rotation is recorded in the audit log.
+    - **Removed:** every mention of `redact.py`, the summary file and posting.
+    - **Never list:** adds "Write to a ticket" and "Write to the audit log".
+
+    **SKILL.md is ahead of the code.** It now describes `--ticket`, the audit log and exit 4, which the helper doesn't have until Part B. `run_all.py` still passes because the existing tests don't cover those yet.
+
+    **Two new items in Part B for you to confirm.** Your answers raised these, so I marked them (proposed) in the spec:
+    1. **Rejected entries never record the raw bad value.** An invalid service name or ticket ID is logged as `null`, because the bad value could be a pasted key, and logging bad input would otherwise put it in the log.
+    2. **Exit 4 only when a rotation may have happened.** If the outcome was `failed` (a server error, so no rotation) and the log write also fails, it keeps exit 2 and still prints the warning, since exit 4 means "rotated".
+
+    Also, `outcome` now needs two more values beyond ok/failed/unknown: `started` and `rejected`. The spec says this, but you may want to confirm the names.
+
+    Let me know if Part A looks right and what you decide on the two proposals, and I'll build Parts B and C.
+
+17. (1) - If the log stores null but stderr says invalid service name: rly_FAKE..., the value still ends up in the agent’s transcript. The error should name the field, not repeat the value: “invalid service name (not shown).”
+- Log a reason instead of the value. Something like "rejected": "invalid_service_name" keeps the entry useful for debugging without the risky part. I’d avoid logging a length or a hash of the bad value, since both come from what might be a key.
+- The ticket ID needs its own format check for this to work, such as letters, a dash, and digits (SUP-5521). Otherwise there’s nothing to reject.
+- One test: pass a fake key as the service name and as the ticket ID, then assert it appears nowhere in the log file, stdout, or stderr, and that the fake server got zero requests.
+(2) yes that works
+started and rejected also work fine
+with these decisions inplemented go ahead with b and c now
+
+ - I built Parts B and C. All 69 tests pass, and `python run_all.py` reports PASS. I've stopped here for your review. Nothing is committed.
+
+    **Your decisions, now in SPEC.md Task 4 and in the code**
+    - **Bad input values never appear anywhere.** Errors name the field, e.g. "invalid service name (not shown)".
+    - Rejected log entries record `null` for the bad field plus a `reason` code such as `invalid_service_name` or `invalid_ticket_id`. No length or hash of the value is logged.
+    - argparse errors are covered too. Its normal messages can repeat a stray argument (e.g. a pasted key), so they're replaced with "invalid command-line arguments (values not shown)" and logged as `bad_arguments`.
+    - **The ticket ID has its own format check:** uppercase letters, a hyphen, digits (`SUP-5521`).
+    - **A failed call keeps exit 2** if the final log entry can't be written, and still prints the warning.
+
+    **What the helper does now** ([skill/scripts/rotate_key.py](skill/scripts/rotate_key.py))
+    - **Log location:** `RELAY_AUDIT_LOG` must be set, or it exits 1 and sends nothing.
+    - **Log format:** one JSON object per line, appended and never rewritten. The fields are `time` (UTC), `service`, `user` (`getpass.getuser()`), `outcome` and `ticket`, plus `reason` on rejected entries. The file is created readable only by its owner.
+    - **Order of steps:**
+    1. Check every input. Any bad input writes a `rejected` entry and exits 1.
+    2. Write the `started` entry. If that fails, it exits 1 and sends nothing.
+    3. Make the one request.
+    4. Write the final `ok`, `failed` or `unknown` entry.
+    - **If the final entry can't be written:** there's no retry, the normal outcome line still prints, stderr gets a warning, and it exits 4 (or 2 for a failed call).
+    - **No key material can be printed.** I listed all 14 `print` calls. Each one prints fixed text, a validated service name, a status code, or `last4`.
+
+    **Tests** ([tests/test_rotate_key.py](tests/test_rotate_key.py))
+    - **The 13 new audit tests check:**
+    - the exact fields and a UTC time
+    - the ticket is recorded, and `null` when there's none
+    - the `started` entry is already on disk when the fake server receives the request
+    - invalid ticket IDs (5 variants) and service names are rejected without logging the value
+    - your test: a fake key passed as the service name, as the ticket ID, and as a stray argument appears nowhere in the log, stdout or stderr, and the server gets zero requests
+    - a missing or unwritable log sends nothing
+    - two runs append rather than overwrite
+    - no key or last-4 ever appears in the log
+    - exit 4 after a successful call, and exit 2 after a failed one
+    - **The existing tests** now also check which log entries each run wrote (success, 500, timeout, dropped connection, bad base URLs).
+
+    **Two things for you to decide**
+    1. **Exit 4 with an unknown outcome.** As approved, an `unknown` outcome plus a failed final log write exits 4. But SKILL.md step 4 tells the agent to say "the key was rotated" on exit 4, which isn't true when the outcome was unknown. Options:
+    - reword step 4 to "the call finished, the audit record is missing; check the outcome line", or
+    - make unknown keep exit 3 and use exit 4 only for `ok`.
+    2. **SKILL.md doesn't mention `RELAY_AUDIT_LOG`.** If it isn't set, the helper refuses with a clear message and the agent stops under "if anything fails, stop". Do you want step 2 to check it alongside the key? I didn't add that, because the spec doesn't list it.
+
+    The full suite now takes about 37 seconds, because two tests wait out the 10-second timeout. Other files that still describe ticket comments are the follow-ups listed in the spec: the memo, `guardrails.md`, `rollout.md` and the README.
+
+18. (1) Step 4 rewording as suggested makes sense
+(2) Step 2 should check if the log exists first, fall back to a default (~/.relay/rotation-audit.jsonl), creating the folder if needed
+
+ - Both changes are in, and `python run_all.py` reports PASS. Your real `~/.relay` folder was not created: the tests run the helper with a temporary home folder. Nothing is committed.
+
+    **1. Step 4 wording** ([skill/SKILL.md](skill/SKILL.md)): exit 4 now means "the call finished, but the audit entry could not be written." The agent doesn't retry and tells the user the audit record is missing. It then checks the outcome line: `ok` means the key was rotated, and `unknown` is handled the same way as any unknown outcome.
+
+    **2. Default log path and the step 2 check**
+    - **Where the log goes:** the helper uses `RELAY_AUDIT_LOG` if it's set. If it's unset or empty, it uses `~/.relay/rotation-audit.jsonl` and creates `~/.relay/` (owner-only) if needed.
+    - It only creates that default folder. If `RELAY_AUDIT_LOG` points into a folder that doesn't exist, the helper refuses rather than creating folders from a possible typo.
+    - **`--check` now checks the log too.** It exits 0 only if `RELAY_KEY` is set *and* the log can be opened for writing. It never writes a log entry, since it isn't a rotation.
+    - **What step 2 in SKILL.md tells the agent:**
+    - where the log is,
+    - that the helper creates the folder,
+    - on failure, to tell the user whether the key or the log was the problem.
+    - **If the default folder can't be created**, a rotation exits 1 and sends nothing.
+
+    **Spec and tests**
+    - SPEC.md Task 4 is updated to match. It replaces the earlier "no default path" line and adds the step 2 and `--check` changes.
+    - SKILL.md is now 76 lines, and the banned-strings search still finds nothing.
+    - I added 4 tests:
+    - `--check` fails when the log isn't writable
+    - `--check` creates the default folder but writes no entry
+    - with no `RELAY_AUDIT_LOG`, entries go to the default path
+    - if the default folder can't be created, nothing is sent
+
+    One test that checked the old "unset means refuse" behavior became the default-path test. The rotate suite is now 32 tests, all passing.
+
+    **One trade-off to know:** with a default path, a rotation always gets logged somewhere, even if nobody set the env var. On a shared machine, though, that log sits in whichever user's home folder ran the helper. That fits your note that a real deployment would log centrally.

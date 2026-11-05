@@ -50,6 +50,7 @@ CLASS_NOTES = {
     "test_cli.TestCommandLineFailSafe": "Command-line fail-safes: exit codes, withheld output, file argument.",
     "test_rotate_key.TestCheck": "rotate_key.py --check: is RELAY_KEY set, without ever printing it.",
     "test_rotate_key.TestRotate": "rotate_key.py rotation against a local fake Relay server.",
+    "test_rotate_key.TestAuditLog": "The helper's audit log: one entry per step, no key material, no bad input values.",
     "test_rotate_key.TestBaseUrl": "RELAY_BASE_URL may only point at this machine.",
     "test_rotate_key.TestNoExtraFlags": "The helper has no force, skip, retry, or key flags.",
 }

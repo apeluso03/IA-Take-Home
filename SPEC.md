@@ -148,3 +148,97 @@ python3 run_tests.py --target original
 - Verify before committing:
   - Part A: I read it side by side with `original/SKILL.md`, tick off each original step, and run the banned-strings search.
   - Part B/C: I read the helper myself and can explain every line. I check that no code path prints the key, including error handling.
+
+### Task 4: No ticket writes, audit log instead
+- Why: New requirement. Nothing that comes from a key rotation may be written to any ticket. That includes the response, a masked key (last 4), and a key ID. For this skill, the agent may not write to the ticket system at all. An audit trail must still exist.
+- What to build:
+  - Part A: update `skill/SKILL.md` to the new rule.
+  - Part B: the helper (`skill/scripts/rotate_key.py`) appends one entry to an audit log on every rotation attempt.
+  - Part C: tests for the log in `tests/test_rotate_key.py`.
+- Order: build Part A, then STOP for my review. Then Parts B and C together, then STOP.
+
+- Do not, in this task:
+  - Edit anything in `original/`.
+  - Delete `src/redact.py` or its tests. It stays built and tested even though the skill no longer uses it.
+  - Add steps, features, flags, or tools not listed below. If something seems missing, list it in your reply instead of adding it.
+  - Make any call to a real endpoint or a real ticket system.
+  - Put any real or realistic-looking key in any file. Test keys must start with rly_FAKE.
+
+#### Part A: SKILL.md changes
+- Rules: add "Never write to any ticket or the ticket system, for any reason."
+- Step 1 (Confirm before rotating):
+  - Confirm the service name only. Urgency still does not skip it. Name rules unchanged.
+  - Ask whether there is a ticket ID to record in the audit log. Optional: no ticket does not block rotation. Never guess or create one.
+  - Ticket ID format: uppercase letters, a hyphen, digits, e.g. `SUP-5521`. Anything else: ask again or leave it out.
+- Step 3 (Rotate): command becomes `python scripts/rotate_key.py --service <name> --out <path> [--ticket <id>]`. Say the helper writes the audit log itself.
+- Step 2 (Check): `--check` now also confirms the audit log can be written (`RELAY_AUDIT_LOG`, or the default path below). If it fails, stop.
+- Step 4 (Failure): add exit 4: the call finished but the audit entry could not be written. Do not retry. Tell the user the call finished and the audit record is missing, and to check the outcome line (`ok` or `unknown`) for what happened to the key.
+- Step 6 (Audit comment): remove. Replace with "Audit log":
+  - The helper records every rotation in the audit log. Do not write, edit, move, or delete the log.
+  - Do not post anything to any ticket. That includes the result, the last 4 characters, and any key ID.
+  - Tell the user the rotation is recorded in the audit log under the ticket ID, and that no rotation details may be added to the ticket, including by hand.
+- Step 5 (Report result) is unchanged: service, time, last 4 characters go to the user in chat only.
+- Remove every mention of `redact.py` and the summary file from SKILL.md.
+- "Never" list: add "write to a ticket" and "write to the audit log".
+- Style unchanged: plain, short, imperative, a heading per step, under about 80 lines.
+
+#### Part B: audit log in rotate_key.py
+- New optional flag `--ticket <id>`. Validated with the Part A format before any network call; invalid: exit 1, zero requests, no log entry. The helper never contacts the ticket system.
+- Log location: a local file written by the helper. Path from the `RELAY_AUDIT_LOG` env var; if unset or empty, the default `~/.relay/rotation-audit.jsonl`, creating `~/.relay/` (owner-only) if needed. Only the default's folder is created; a set `RELAY_AUDIT_LOG` must point into an existing folder. (In a real deployment this would be a central, server-side record such as Relay's; Relay isn't used here.)
+- Format: JSON Lines, one object per line, append only. Never truncate or rewrite existing lines.
+- Fields, exactly these:
+  - `time`: UTC, ISO 8601
+  - `service`
+  - `user`: who ran it, from `getpass.getuser()`. Weak (it can be spoofed); a real build would get this from Relay.
+  - `outcome`: `started`, `ok`, `failed`, `unknown`, or `rejected`
+  - `reason`: only on `rejected` entries (see below)
+  - `ticket`: the ID, or `null` if none
+- Never in the log: the old key, the new key, any part of either (including last 4), headers, or the response body.
+- When it's written:
+  - A `started` entry just before the request, so a crash or kill mid-call still leaves a trace.
+  - A final entry after the outcome is known (ok, failed, unknown).
+  - Bad input that exits 1 before any request is also logged, as intent to rotate, with outcome `rejected`.
+  - A rejected entry never records the raw bad value, since a bad value could be a pasted key. An invalid service name or ticket ID is logged as `null`, and a `reason` field says what was wrong (e.g. `"reason": "invalid_service_name"`). Never log a length or hash of the bad value either.
+  - Error messages name the field, never repeat the value: e.g. "invalid service name (not shown)". This includes argument-parsing errors.
+- `--check`: exit 0 only if RELAY_KEY is set and the log can be opened for append; otherwise exit 1. Writes no entry (it isn't a rotation).
+- If the log can't be opened for append (or the default folder can't be created): exit 1, zero requests (nothing can be logged).
+- If writing the `started` entry fails: exit 1, zero requests.
+- If writing the final entry fails after a request was sent:
+  - Don't retry the rotate call. The key exists even if the record is missing.
+  - Still print the normal outcome line.
+  - Print a clear warning to stderr: the rotation finished, but the audit entry couldn't be written.
+  - Exit 4, meaning "rotated, audit incomplete".
+  - If the outcome was `failed` (no rotation), keep exit 2 and still print the warning, since exit 4 means "rotated".
+- New log file created with owner-only permissions where the OS supports it.
+
+#### Part C: tests
+- Must cover:
+  - ok, failed (500), and unknown (timeout) each append exactly one entry with the right `outcome`.
+  - Entry has exactly the five fields (plus `reason` on rejected entries), `time` parses as UTC ISO 8601.
+  - `--ticket SUP-1234` is recorded; no `--ticket` records `null`.
+  - Every request is preceded by a `started` entry.
+  - Invalid ticket ID: exit 1, zero requests, one `rejected` entry.
+  - Bad service name: exit 1, zero requests, one `rejected` entry, raw value not in the log.
+  - A fake key passed as the service name, and as the ticket ID: it appears nowhere in the log, stdout, or stderr, and the fake server gets zero requests.
+  - Final entry can't be written after a successful call: normal outcome line, stderr warning, exit 4, exactly one request.
+  - `RELAY_AUDIT_LOG` unset: entries go to `~/.relay/rotation-audit.jsonl`, folder created (tests use a temporary home folder, never the real one).
+  - Log not writable: exit 1, zero requests.
+  - `--check`: exit 1 when the log isn't writable, no entry written.
+  - Two runs append two lines; earlier lines unchanged.
+  - The log never contains the old key, the new key, or the new key's last 4.
+- Existing helper tests still pass.
+
+- Acceptance criteria:
+  - Searching SKILL.md finds no `redact.py`, no "comment", no "post", plus everything in Task 3's banned-strings search.
+  - Every claim SKILL.md makes about the audit log is backed by a Part C test.
+  - `src/redact.py` and its tests are unchanged and still pass.
+  - All tests pass with `python run_tests.py` and `python run_all.py`.
+
+- Follow-ups outside this task (list only, I decide):
+  - `skill/scripts/redact.py` and `src/redact.py` are kept for possible future use (decided).
+  - Docs that describe ticket comments: `docs/memo.md`, `docs/guardrails.md`, `docs/rollout.md`, `README.md`.
+  - Where the audit log lives in a real setup, and who can read it.
+
+- Verify before committing:
+  - Part A: I read it against the new requirement and run the banned-strings search.
+  - Part B/C: I read the helper's log code and check no code path writes key material to the log.
