@@ -1,14 +1,5 @@
 # Review items: verdicts and evidence
 
-| # | Claim | Verdict | Confidence |
-|---|---|---|---|
-| 1 | Key on command line visible in process list. Medium. | | |
-| 2 | redact.py covers all formats. No change. | | |
-| 3 | Retry loop is good. Keep it. | | |
-| 4 | Jira comments are access controlled. No change. | | |
-| 5 | --force is documented in the helper. Fine on user's say-so. | | |
-| 6 | Description is clear and triggers correctly. No change. | | |
-
 ## Item 1: key visible in the process list
 - Verdict: Yes
 - Why: After running a test in my own command line it was confirmed; setting a fake key variable and running a curl command like what happened in the incident with a timeout resulted in being able to find the key in a separate window by getting the process
@@ -50,8 +41,8 @@
 - Tested? Partly. Can't test Relay's behavior (whether a timed-out call creates a key). Tested only that the new helper doesn't retry.
 
 ## Item 4: Jira comments are access controlled
-- Verdict: N/A
-- Why:
+- Verdict: Disagree
+- Why: Answered directly in attachment B
 - Evidence:
   - Attachment B: "Ticket project SUP is the support project. Customers with portal access can see public comments on it. The comment was public."
 - Tested? No. No access to Jira. Based on attachment text only.
@@ -73,4 +64,32 @@
 - Tested? No. Reasoning from the wording only. Could test by giving an agent prompts like "my AWS key leaked" and "rotate the billing-sync Relay key" and seeing whether the skill loads.
 
 ## What the review missed
-<!-- Your call what goes here. Candidates: full request/response contains keys (step 5), new key shown in chat (step 3), no confirmation (step 7), nothing about revoking the old key, curl -s hiding errors. -->
+
+The review graded six points but skipped several problems in the original skill. The first four connect most directly to the incident.
+
+1. **Step 5 builds the comment out of secrets.** "The full request and response" contains the old key (in the Authorization header) and the new key (in the response body). The review only asks whether redaction catches them (item 2). The real problem is putting keys in the comment at all, which makes the redactor the only line of defense.
+   - Evidence: Attachment A step 2 and 5; evidence/inputs/10_comment.txt shows both keys in one comment, and the hyphenated new key leaked.
+
+2. **Step 5 doesn't say how to run redact.py.** Run from the command line, the original prints nothing and exits 0, so "run redact.py over the comment" can quietly do nothing.
+   - Evidence: tests/test_cli.py fails against the original (empty output, exit 0).
+
+3. **Step 3 shows the new key in chat.** That puts the key in the agent's transcript, logs, and any shared session, which is another leak path.
+   - Evidence: Attachment A step 3. Not tested; reasoning only.
+
+4. **Step 7 skips confirmation.** Rotation can't be undone and breaks anything using the old key, and the agent chooses both the service name and the ticket. A wrong service or a public ticket goes through with no check.
+   - Evidence: Attachment A step 7; Attachment B (the comment went to a customer-visible ticket).
+
+5. **Step 2 uses `curl -s`.** Silent mode hides error messages, so a failure can look like an empty success.
+   - Evidence: Attachment A step 2. Not tested.
+
+6. **Step 2 doesn't check the service name** before putting it in the JSON body.
+   - Evidence: Attachment A step 2. Not tested.
+
+7. **Nothing about the old key.** The skill never says whether rotation revokes it or how to confirm it's dead.
+   - Evidence: Attachment A (no mention). Can't test without Relay.
+
+8. **Nothing about what to do after a timeout.** The incident note says nobody knows whether the first call created a key. The review praises the retry (item 3) without asking what happened to that first call.
+   - Evidence: Attachment B: "We do not yet know whether the first (timed out) call also created a key."
+
+9. **The leaked key can rotate itself.** If the current key is the one that leaked, whoever has it can call rotate too. The skill can't fix this alone, but a review should flag it.
+   - Evidence: Attachment A steps 1 and 2. Reasoning only.

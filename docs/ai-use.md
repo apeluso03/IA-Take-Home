@@ -435,3 +435,36 @@
     One thing I noticed but left alone, since you edited that part: on line 42, the comment `# against the fixed` stops mid-sentence. I think it was meant to end with `src/redact.py`. The paragraph under it also still mentions "the default target", but that command now passes `--target fixed` explicitly.
 
     Nothing is committed.
+
+13. Can you summarize any points the review may have missed?
+
+    - ## What the review missed
+
+    The review graded six points but skipped several problems in the original skill. The first four connect most directly to the incident.
+
+    1. **Step 5 builds the comment out of secrets.** "The full request and response" contains the old key (in the Authorization header) and the new key (in the response body). The review only asks whether redaction catches them (item 2). The real problem is putting keys in the comment at all, which makes the redactor the only line of defense.
+    - Evidence: Attachment A step 2 and 5; evidence/inputs/10_comment.txt shows both keys in one comment, and the hyphenated new key leaked.
+
+    2. **Step 5 doesn't say how to run redact.py.** Run from the command line, the original prints nothing and exits 0, so "run redact.py over the comment" can quietly do nothing.
+    - Evidence: tests/test_cli.py fails against the original (empty output, exit 0).
+
+    3. **Step 3 shows the new key in chat.** That puts the key in the agent's transcript, logs, and any shared session, which is another leak path.
+    - Evidence: Attachment A step 3. Not tested; reasoning only.
+
+    4. **Step 7 skips confirmation.** Rotation can't be undone and breaks anything using the old key, and the agent chooses both the service name and the ticket. A wrong service or a public ticket goes through with no check.
+    - Evidence: Attachment A step 7; Attachment B (the comment went to a customer-visible ticket).
+
+    5. **Step 2 uses `curl -s`.** Silent mode hides error messages, so a failure can look like an empty success.
+    - Evidence: Attachment A step 2. Not tested.
+
+    6. **Step 2 doesn't check the service name** before putting it in the JSON body.
+    - Evidence: Attachment A step 2. Not tested.
+
+    7. **Nothing about the old key.** The skill never says whether rotation revokes it or how to confirm it's dead.
+    - Evidence: Attachment A (no mention). Can't test without Relay.
+
+    8. **Nothing about what to do after a timeout.** The incident note says nobody knows whether the first call created a key. The review praises the retry (item 3) without asking what happened to that first call.
+    - Evidence: Attachment B: "We do not yet know whether the first (timed out) call also created a key."
+
+    9. **The leaked key can rotate itself.** If the current key is the one that leaked, whoever has it can call rotate too. The skill can't fix this alone, but a review should flag it.
+    - Evidence: Attachment A steps 1 and 2. Reasoning only.
