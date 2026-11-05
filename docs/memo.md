@@ -3,6 +3,17 @@
 ## Decision
 I have decided to shut down the use of v0.3 and ship a new, changed version. This new version will at first ship only to the immediate platform team to further test on real services before being allowed to go live company wide. This decision has been made to ensure keys no longer leak in a similar fashion to the incident, in that an agent using the skill may not post a full request, or any sensitive material, to a public ticket. The new version uses a helper function along with the skill to make the rotate call through code, ensuring the agent never needs to access or print the key's actual value. In the event of any leaks after rollout, a rollback should occur that would leave the team with no skill until further tweaks are made, since a rollback to v0.3 which is known to have flaws should not be allowed.
 
+### What changed after new rule
+The decision remains the same, shut down v0.3 and ship the changed skill, platform team first. What changed is how the skill keeps its record. In the original fix, the agent wrote a redacted summary into an internal ticket. The new rule bars anything from a rotation going into a ticket, so the agent no longer touches the ticket system at all. Instead, the rotate_key.py helper appends an entry to an audit log for every attempt, including rejected and started ones. Each entry holds the time, service, who ran it, the outcome, and an optional ticket ID. Only code writes the log, so the agent can't leak a key into it.
+
+What I gave up:
+
+- The ticket is no longer the record. Someone reading the ticket won't see that a rotation happened or what the outcome was. The ticket ID is just a reference inside the log
+- The last 4 characters of the key are no longer noted
+- A rotation can be blocked by the log. If the log can't be written, the helper refuses to rotate. That could slow an urgent fix after a leak
+- A rotation can still end up unrecorded. If the log write fails after the call has gone through, the key is rotated without a record and an error is logged
+- The fixed redact.py isn't used by the skill anymore
+
 ## What changed and why
 
 **1. The rotate call moved out of the skill and into a helper (`skill/scripts/rotate_key.py`).**
