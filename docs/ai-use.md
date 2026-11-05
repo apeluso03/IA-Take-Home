@@ -468,3 +468,20 @@
 
     9. **The leaked key can rotate itself.** If the current key is the one that leaked, whoever has it can call rotate too. The skill can't fix this alone, but a review should flag it.
     - Evidence: Attachment A steps 1 and 2. Reasoning only.
+
+14. Building off of my opening paragraph in docs/memo.md, concisely finish listing what changes were made and why, and what was not changed. Do not edit anything I have wrote myself, just finish the memo and keep it relatively short (less than 2 pages in a standard document file)
+
+ - Written for: reviewers of your take-home reading the decision memo.
+
+    I finished docs/memo.md by adding two sections under your Decision paragraph:
+
+    "What changed and why" covers the helper, the rewritten skill, the fixed redactor, and the tests and evidence. Each change is tied to the specific v0.3 problem it fixes, and the review-item numbers are cited where they apply.
+    "What was not changed" covers what was deliberately kept: original/ untouched, and the skill's name, trigger and audit trail. It also lists what's still open — the Relay-side questions, SUP visibility, the --out placeholder, risks that can't be enforced in code, and what wasn't tested — and points to guardrails.md and unverified.md.
+    The whole memo is about 930 words, which is roughly a page and a half in a standard document.
+
+    Your paragraph is unchanged. Git shows "1 deletion" only because your last line had no line ending, and adding text after it changed that.
+
+    Your SPEC lists "anything in the memo" under "Do not decide". I took this request as overriding that for this memo, so I only described what was built and what's open, and made no judgment calls. Every claim comes from the repo, your decision log, review-items.md, guardrails.md or unverified.md. Please check two of them:
+
+"Fails 24 of 40" is the count from my last run_all.py run.
+"Anyone holding the leaked key can still call rotate themselves" comes from your own review notes. It's reasoning only and wasn't tested.
