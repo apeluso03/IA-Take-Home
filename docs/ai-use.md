@@ -393,3 +393,45 @@
     Windows commands: the README uses python3 to match your SPEC and adds a note to use python on Windows.
     Test time: "about 25 seconds" is from my run on your machine.
     Nothing is committed.
+
+11. Could you create a script that will run every test created for this repo? This should include the original input/output, fixed input/output, and any other supplementary tests that exist. The script should also compile a single file that outlines the results of all of these tests, explains what they check and whether they pass or fail so that it's all in one place.
+
+ - I added run_all.py at the repo root. One command runs every test and writes everything to a single report, evidence/results/test-report.md:
+
+
+    python3 run_all.py
+    On my run it took about 30 seconds and the report came out as PASS. The fixed redactor passed 40/40 redact tests, the original 16/40 (failing is expected), the rotate helper 16/16, and the repo checks 4/4.
+
+    What it runs, in report order
+
+    Redact tests (test_redact.py, test_cli.py) against both the fixed and original redact.py. They're shown side by side in one table per test class, with a one-line note on what the class checks. For each failure of the original, it also shows got vs. expected.
+    Rotate helper tests (test_rotate_key.py), run once, since they don't depend on which redactor is picked.
+    Every evidence input through both redactors.
+    A table shows whether each output changed and which lines still hold a key-like value. That check also catches a prefix split across lines, which the old evidence runner missed.
+    It also shows each version's command-line exit code and whether it printed anything. The original prints nothing and exits 0 on every input.
+    Below the table is the full text of each input, the original's output, and the fixed output.
+    It also re-runs evidence/run_evidence.py, so the per-input files stay current. They came out unchanged this time.
+    Repo checks I added from the spec's acceptance criteria:
+    original/ has no uncommitted changes in git
+    skill/scripts/redact.py matches src/redact.py
+    the banned-strings search on SKILL.md
+    SKILL.md's line count (79)
+    How it decides PASS: it exits 0 only when the fixed redactor, the rotate helper and the repo checks all pass, and the original still fails at least one test.
+
+    Things to know
+
+    No pass/fail for evidence inputs. The repo has no expected answers for them, so the report shows what happened instead. For example, 07_long with the original leaves MORETEXT behind, which you can see only in the output text, not in the table.
+    Some failure reasons are terse. Tests that check a non-zero exit code show AssertionError: 0 == 0 against the original. That means it exited 0 when it shouldn't have.
+    Test descriptions come from the test names, because the tests have no docstrings. If you add a docstring to any test, its first line is used instead.
+    run_tests.py is unchanged and still works for quick runs.
+    Nothing is committed; run_all.py and the report are untracked. The README doesn't mention run_all.py yet. Want me to add it?
+
+12. Yes add to readme as well
+
+ - I've added `run_all.py` to the [README](README.md):
+    - **New "Running everything" section**, placed before "Running the tests". It gives the command and says where the report is saved. It lists the four things the script checks and explains when it exits 0.
+    - **Three new rows in the "What's here" table**: `run_all.py`, `run_tests.py` and `evidence/results/test-report.md`.
+
+    One thing I noticed but left alone, since you edited that part: on line 42, the comment `# against the fixed` stops mid-sentence. I think it was meant to end with `src/redact.py`. The paragraph under it also still mentions "the default target", but that command now passes `--target fixed` explicitly.
+
+    Nothing is committed.
