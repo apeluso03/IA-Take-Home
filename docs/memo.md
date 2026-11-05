@@ -1,0 +1,4 @@
+# Decision Memo: relay-rotate-key
+
+## Decision
+I have decided to shut down the use of v0.3 and ship a new, changed version. This new version will at first ship only to the immediate platform team to further test on real services before being allowed to go live company wide. This decision has been made to ensure keys no longer leak in a similar fashion to the incident, in that an agent using the skill may not post a full request, or any sensitive material, to a public ticket. The new version uses a helper function along with the skill to make the rotate call through code, ensuring the agent never needs to access or print the key's actual value. In the event of any leaks after rollout, a rollback should occur that would leave the team with no skill until further tweaks are made, since a rollback to v0.3 which is known to have flaws should not be allowed.
