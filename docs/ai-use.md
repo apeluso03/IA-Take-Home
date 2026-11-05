@@ -667,3 +667,26 @@ with these decisions inplemented go ahead with b and c now
     - **It's separate from the automated tests**, so `run_all.py` doesn't run it. The same cases are already covered there; this script is for reading each result yourself.
 
     Nothing is committed.
+
+20. Update the readme with everything new that has been built and include any tests and their commands needed to run
+
+ - Written for: reviewers of your take-home, plus anyone re-running the tests.
+
+    I updated [README.md](README.md) to cover everything built since the last version. I re-ran both main commands to check it: `run_all.py` passes in 42 seconds, and `run_tests.py --target fixed` passes all 72 tests in 38 seconds, which matches the times the README gives.
+
+    **What's new in the README**
+    - **The no-ticket requirement** is explained near the top: the skill no longer writes to tickets, and the record is now an audit log written only by the helper.
+    - **A testing quick-reference table** lists every command with what it does and roughly how long it takes: `run_all.py`, `run_tests.py` for both targets, `run_evidence.py`, and the new `try_errors.py`.
+    - **A new section for `evidence/try_errors.py`** gives its command, what it prints, and a table of all 13 error cases with their expected exit codes.
+    - **The rotate helper section** now covers `--ticket`, the extra things `--check` checks, and exit code 4. It also says bad input values are never repeated back.
+    - **A new audit log subsection** covers where the log lives, an example entry, the possible outcomes, and that it never holds key material. It also notes the weak `user` field and that a real deployment would log centrally.
+    - **A "Testing the skill with an agent" section** has a command to start a fake server that stays up, plus the test prompts and what the agent should do with each. It ends by listing what's still untested.
+    - **Smaller corrections:**
+    - the file table now includes `try_errors.py`
+    - `skill/scripts/redact.py` is described as kept for future use
+    - the helper tests' description now mentions the audit log
+    - the line `# against the fixed`, which stopped mid-sentence, is finished
+
+    Re-running `run_all.py` also regenerated `evidence/results/test-report.md`. Nothing is committed.
+
+    The memo, `guardrails.md` and `rollout.md` still describe ticket comments from before Task 4. Those are yours to update, as listed in the spec's follow-ups.
