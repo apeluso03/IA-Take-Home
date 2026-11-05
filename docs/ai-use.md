@@ -642,3 +642,28 @@ with these decisions inplemented go ahead with b and c now
     One test that checked the old "unset means refuse" behavior became the default-path test. The rotate suite is now 32 tests, all passing.
 
     **One trade-off to know:** with a default path, a rotation always gets logged somewhere, even if nobody set the env var. On a shared machine, though, that log sits in whichever user's home folder ran the helper. That fits your note that a real deployment would log centrally.
+
+19. Create a short script that starts a fake server and tries commands that should result in errors as stated the skill
+
+ - I added [evidence/try_errors.py](evidence/try_errors.py) and ran it: all 13 error cases behaved as the skill describes, and no key appeared in any output or log. Run it with:
+
+    ```powershell
+    python evidence/try_errors.py
+    ```
+
+    It starts the fake Relay server, runs the helper the way the skill does, and prints one block per case. Each block shows the expected and actual exit code, how many requests reached the server, what the helper printed, and the audit log entries it wrote. It also checks every output and log for the fake keys and flags any leak. It exits 0 only if every case matches.
+
+    | Expected exit | Cases |
+    |---|---|
+    | 1, no request sent | `--check` with no key; `--check` with an unwritable log; a bad service name; a bad ticket ID; a fake key pasted as the service name or as the ticket ID (never shown back); `--out` already exists; a base URL off this machine; a `--force` flag |
+    | 2 | Server error (500) |
+    | 3 | Timeout; connection dropped mid-call |
+    | 4 | Rotation ok, but the audit entry can't be written |
+
+    **Things to know**
+    - **It takes about 25 seconds.** Two cases wait out the helper's 10-second timeout.
+    - **It runs in a temporary folder**, including a temporary home folder. Your real `~/.relay` was not touched.
+    - **It leaves that folder behind on purpose**, so you can open the audit logs, and prints its path at the end. Windows clears its temp folder eventually; delete it sooner if you like.
+    - **It's separate from the automated tests**, so `run_all.py` doesn't run it. The same cases are already covered there; this script is for reading each result yourself.
+
+    Nothing is committed.
